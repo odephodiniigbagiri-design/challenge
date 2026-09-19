@@ -155,7 +155,7 @@
 // ---------------------------------------------------------------
 // CONFIG — fill these in with your real values
 const SUPABASE_URL = "https://ijapytnwikzovdhsgcnh.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqYXB5dG53aWt6b3ZkaHNnY25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NzU2ODAsImV4cCI6MjEwNTM1MTY4MH0.O51p37THBEDrYZym7nF2x4TWM974uM66o4H55qGL0RE";
+const SUPABASE_ANON_KEY = "sb_publishable_wmpMUf23z6-Dg3M_L7oKBA_rwsIGCWX";
 const PAYSTACK_PUBLIC_KEY = "pk_live_face7c6a8ce9b632ee9501b7269616ac7910bac2"; // from Paystack dashboard > Settings > API Keys
 const CHALLENGE_FEE_KOBO = 10000; // ₦100
 const SITE_URL = "https://sites.google.com/view/lowerinvertebrates/libio"; // used to build referral links
@@ -249,7 +249,7 @@ async function renderProfile() {
     document.getElementById('copy-ref-btn').addEventListener('click', () => {
       const input = document.getElementById('ref-link');
       input.select();
-      document.execCommand('copy');
+      navigator.clipboard.writeText(input.value).then(() => { /* show feedback */ });
       const btn = document.getElementById('copy-ref-btn');
       btn.textContent = 'Copied!';
       setTimeout(() => btn.textContent = 'Copy', 1500);
