@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -161,6 +159,10 @@ const PAYSTACK_PUBLIC_KEY = "pk_live_face7c6a8ce9b632ee9501b7269616ac7910bac2"; 
 const CHALLENGE_FEE_KOBO = 10000; // ₦100
 const SITE_URL = "https://sites.google.com/view/lowerinvertebrates/libio"; // used to build referral links
 // ---------------------------------------------------------------
+
+// Error handler for missing RPC functions
+// Create Supabase client FIRST
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Error handler for missing RPC functions
 async function safeRPC(funcName, params = {}) {
@@ -521,11 +523,23 @@ data.forEach((row, i) => {
   rowDiv.appendChild(scoreSpan);
   cardDiv.appendChild(rowDiv);
 });
-
 // ---------- init ----------
-renderProfile();
-renderQuizTab();
-renderLeaderboard();
+document.getElementById('profile-inner').innerHTML = '<div class="card"><p>⏳ Loading profile...</p></div>';
+document.getElementById('quiz-inner').innerHTML = '<div class="card"><p>⏳ Loading quiz...</p></div>';
+document.getElementById('lb-inner').innerHTML = '<div class="card"><p>⏳ Loading leaderboard...</p></div>';
+
+renderProfile().catch(e => {
+  console.error('Profile error:', e);
+  document.getElementById('profile-inner').innerHTML = `<div class="card"><p>❌ Error: ${e.message}</p></div>`;
+});
+renderQuizTab().catch(e => {
+  console.error('Quiz error:', e);
+  document.getElementById('quiz-inner').innerHTML = `<div class="card"><p>❌ Error: ${e.message}</p></div>`;
+});
+renderLeaderboard().catch(e => {
+  console.error('Leaderboard error:', e);
+  document.getElementById('lb-inner').innerHTML = `<div class="card"><p>❌ Error: ${e.message}</p></div>`;
+});
 </script>
 </body>
 </html>
