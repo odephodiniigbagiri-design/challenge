@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -161,6 +162,19 @@ const CHALLENGE_FEE_KOBO = 10000; // ₦100
 const SITE_URL = "https://sites.google.com/view/lowerinvertebrates/libio"; // used to build referral links
 // ---------------------------------------------------------------
 
+// Error handler for missing RPC functions
+async function safeRPC(funcName, params = {}) {
+  try {
+    const { data, error } = await supabase.rpc(funcName, params);
+    if (error) {
+      console.error(`RPC Error (${funcName}):`, error.message);
+      return { data: null, error: error.message || `Function "${funcName}" not found in Supabase` };
+    }
+    return { data, error: null };
+  } catch (e) {
+    return { data: null, error: `Connection failed: ${e.message}` };
+  }
+}
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let myId = null;
@@ -186,6 +200,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
+    
+    // ADDED: Refresh content when tabs are clicked
+    const tabName = btn.dataset.tab;
+    if (tabName === 'quiz') renderQuizTab();
+    if (tabName === 'leaderboard') renderLeaderboard();
   });
 });
 
@@ -209,13 +228,14 @@ async function renderProfile() {
   }
 
   wrap.innerHTML = `<div class="card"><p>Loading your profile...</p></div>`;
-  const { data, error } = await supabase.rpc('get_my_profile', { p_id: myId });
+  const { data, error } = await safeRPC('get_my_profile', { p_id: myId });
   if (error || !data || !data.length) {
     wrap.innerHTML = `<div class="card"><p>Couldn't load your profile. If this keeps happening, clear this site's data and register again.</p></div>`;
     return;
   }
   myProfile = data[0];
-  const refLink = `${SITE_URL}?ref=${myProfile.referral_code}`;
+  const refParams = new URLSearchParams({ ref: myProfile.referral_code }).toString();
+  const refLink = `${SITE_URL}?${refParams}`;
   const isPaid = myProfile.payment_status === 'paid';
 
   wrap.innerHTML = `
@@ -356,6 +376,9 @@ async function renderQuizTab() {
 function startCountdownDisplay(wrap, targetDate, label, onDone) {
   wrap.innerHTML = `<div class="countdown"><p>${label}</p><div class="big" id="cd-big">--:--:--</div></div>`;
   const el = document.getElementById('cd-big');
+  
+  // FIXED: Declare interval before function
+  let iv;
   const tick = () => {
     const diff = targetDate - new Date();
     if (diff <= 0) { clearInterval(iv); onDone(); return; }
@@ -365,14 +388,14 @@ function startCountdownDisplay(wrap, targetDate, label, onDone) {
     el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   };
   tick();
-  const iv = setInterval(tick, 1000);
+  iv = setInterval(tick, 1000);
 }
 
 async function beginLiveQuiz(wrap) {
   wrap.innerHTML = `<div class="card"><p>Loading your 70 questions...</p></div>`;
-  const { data, error } = await supabase.rpc('get_session_questions', { p_session_id: currentSession.id });
+  const { data, error } = await safeRPC('get_session_questions', { p_session_id: currentSession.id });
   if (error) {
-    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#9888;&#65039;</div><p>${error.message}</p></div>`;
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#9888;&#65039;</div><p>${error}</p></div>`;
     return;
   }
   quizQuestions = data;
@@ -380,7 +403,11 @@ async function beginLiveQuiz(wrap) {
   quizIndex = 0;
   quizSubmitted = false;
   quizEndsAt = new Date(currentSession.end_time);
+  
+  // FIXED: Render questions first
   renderQuizQuestion();
+  
+  // FIXED: Start timer AFTER questions are loaded
   if (quizTimerInterval) clearInterval(quizTimerInterval);
   quizTimerInterval = setInterval(() => {
     const diff = quizEndsAt - new Date();
@@ -402,107 +429,98 @@ function renderQuizQuestion() {
   const wrap = document.getElementById('quiz-inner');
   const q = quizQuestions[quizIndex];
   const chosen = quizAnswers[q.id];
+  
+  // FIXED: Sanitize question text and create with textContent
+  const questionDiv = document.createElement('p');
+  questionDiv.className = 'quiz-question';
+  questionDiv.textContent = q.question;
+  
+  const optionsDiv = document.createElement('div');
+  optionsDiv.id = 'q-options';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = `option ${chosen === i ? 'selected' : ''}`;
+    btn.textContent = opt;
+    btn.dataset.i = i;
+    btn.addEventListener('click', () => {
+      quizAnswers[q.id] = parseInt(btn.dataset.i);
+      renderQuizQuestion();
+    });
+    optionsDiv.appendChild(btn);
+  });
+  
+  // Navigation buttons
+  const navDiv = document.createElement('div');
+  navDiv.className = 'quiz-nav';
+  
+  const prevBtn = document.createElement('button');
+  prevBtn.id = 'q-prev';
+  prevBtn.textContent = 'Previous';
+  if (quizIndex === 0) prevBtn.disabled = true;
+  prevBtn.addEventListener('click', () => { quizIndex--; renderQuizQuestion(); });
+  navDiv.appendChild(prevBtn);
+  
+  if (quizIndex === quizQuestions.length - 1) {
+    const submitBtn = document.createElement('button');
+    submitBtn.id = 'q-submit';
+    submitBtn.className = 'btn';
+    submitBtn.textContent = 'Submit';
+    submitBtn.style.flex = '1';
+    submitBtn.style.background = 'var(--pine)';
+    submitBtn.addEventListener('click', submitQuiz);
+    navDiv.appendChild(submitBtn);
+  } else {
+    const nextBtn = document.createElement('button');
+    nextBtn.id = 'q-next';
+    nextBtn.textContent = 'Next';
+    nextBtn.addEventListener('click', () => { quizIndex++; renderQuizQuestion(); });
+    navDiv.appendChild(nextBtn);
+  }
+  
+  // Assemble with innerHTML only for safe progress bar
   wrap.innerHTML = `
     <div class="progress-row">
       <span>Question ${quizIndex + 1} of ${quizQuestions.length}</span>
       <span class="timer" id="quiz-timer">--:--</span>
     </div>
     <div class="progress-track"><div class="progress-fill" style="width:${(quizIndex + 1) / quizQuestions.length * 100}%"></div></div>
-    <p class="quiz-question">${q.question}</p>
-    <div id="q-options">${q.options.map((opt, i) => `<button class="option ${chosen === i ? 'selected' : ''}" data-i="${i}">${opt}</button>`).join('')}</div>
-    <div class="quiz-nav">
-      <button id="q-prev" ${quizIndex === 0 ? 'disabled' : ''}>Previous</button>
-      ${quizIndex === quizQuestions.length - 1
-        ? `<button id="q-submit" class="btn" style="flex:1;background:var(--pine)">Submit</button>`
-        : `<button id="q-next">Next</button>`}
-    </div>`;
-
-  wrap.querySelectorAll('#q-options .option').forEach(btn => {
-    btn.addEventListener('click', () => {
-      quizAnswers[q.id] = parseInt(btn.dataset.i);
-      renderQuizQuestion();
-    });
-  });
-  const prevBtn = document.getElementById('q-prev');
-  if (prevBtn) prevBtn.addEventListener('click', () => { quizIndex--; renderQuizQuestion(); });
-  const nextBtn = document.getElementById('q-next');
-  if (nextBtn) nextBtn.addEventListener('click', () => { quizIndex++; renderQuizQuestion(); });
-  const submitBtn = document.getElementById('q-submit');
-  if (submitBtn) submitBtn.addEventListener('click', submitQuiz);
-}
-
-async function submitQuiz() {
-  if (quizSubmitted) return;
-  quizSubmitted = true;
-  if (quizTimerInterval) clearInterval(quizTimerInterval);
-
-  const wrap = document.getElementById('quiz-inner');
-  wrap.innerHTML = `<div class="card"><p>Submitting your answers...</p></div>`;
-
-  const answersPayload = Object.entries(quizAnswers).map(([question_id, chosen_index]) => ({
-    question_id: parseInt(question_id), chosen_index
-  }));
-
-  const { data, error } = await supabase.rpc('submit_challenge_attempt', {
-    p_participant_id: myId, p_session_id: currentSession.id, p_answers: answersPayload
-  });
-
-  if (error) {
-    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#9888;&#65039;</div><p>${error.message}</p></div>`;
-    return;
-  }
-  const result = data[0];
-  wrap.innerHTML = `
-    <div class="card" style="text-align:center">
-      <h2>Day ${currentSession.day_number} complete!</h2>
-      <p style="font-size:15px">You answered ${result.answered} of ${quizQuestions.length} questions.</p>
-      <div class="countdown"><div class="big">${result.score} / ${quizQuestions.length}</div></div>
-      <p>The leaderboard opens 1 hour after the session ends \u2014 check the Leaderboard tab then.</p>
-    </div>`;
+  `;
+  wrap.appendChild(questionDiv);
+  wrap.appendChild(optionsDiv);
+  wrap.appendChild(navDiv);
 }
 
 // ============================================================
 // LEADERBOARD TAB
 // ============================================================
-async function renderLeaderboard() {
-  const wrap = document.getElementById('lb-inner');
-  wrap.innerHTML = `<div class="card"><p>Checking leaderboard status...</p></div>`;
+wrap.innerHTML = `<div class="card"><h2>Day ${session.day_number} Leaderboard</h2></div>`;
+const cardDiv = wrap.querySelector('.card');
 
-  const { data: sessionData, error: sessionErr } = await supabase.rpc('get_current_session');
-  if (sessionErr || !sessionData || !sessionData.length) {
-    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#127942;</div><p>No leaderboard available right now.</p></div>`;
-    return;
-  }
-  const session = sessionData[0];
-  const reveal = new Date(session.leaderboard_reveal_time);
-  const now = new Date();
-
-  if (now < reveal) {
-    startCountdownDisplay(wrap, reveal, `Day ${session.day_number} leaderboard opens in`, renderLeaderboard);
-    return;
-  }
-
-  const { data, error } = await supabase.rpc('get_leaderboard', { p_session_id: session.id });
-  if (error) {
-    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#9203;</div><p>${error.message}</p></div>`;
-    return;
-  }
-  if (!data.length) {
-    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#127942;</div><p>No entries yet for Day ${session.day_number}.</p></div>`;
-    return;
-  }
-
-  wrap.innerHTML = `
-    <div class="card">
-      <h2>Day ${session.day_number} Leaderboard</h2>
-      ${data.map((row, i) => {
-        const rank = i + 1;
-        const cls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
-        const medal = rank === 1 ? '&#129351;' : rank === 2 ? '&#129352;' : rank === 3 ? '&#129353;' : rank;
-        return `<div class="lb-row ${cls}"><span class="lb-rank">${medal}</span><span class="lb-name">${row.username}</span><span class="lb-score">${row.score}</span></div>`;
-      }).join('')}
-    </div>`;
-}
+data.forEach((row, i) => {
+  const rank = i + 1;
+  const cls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+  const medal = rank === 1 ? '&#129351;' : rank === 2 ? '&#129352;' : rank === 3 ? '&#129353;' : rank;
+  
+  const rowDiv = document.createElement('div');
+  rowDiv.className = `lb-row ${cls}`;
+  
+  const rankSpan = document.createElement('span');
+  rankSpan.className = 'lb-rank';
+  rankSpan.innerHTML = medal; // Safe: only medals (emoji/numbers)
+  
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'lb-name';
+  nameSpan.textContent = row.username; // Safe: no HTML
+  
+  const scoreSpan = document.createElement('span');
+  scoreSpan.className = 'lb-score';
+  scoreSpan.textContent = row.score; // Safe: numbers only
+  
+  rowDiv.appendChild(rankSpan);
+  rowDiv.appendChild(nameSpan);
+  rowDiv.appendChild(scoreSpan);
+  cardDiv.appendChild(rowDiv);
+});
 
 // ---------- init ----------
 renderProfile();
