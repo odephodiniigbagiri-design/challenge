@@ -1,0 +1,513 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam Prep — 3-Day Challenge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<style>
+  :root {
+    --bg: #FBF9F4; --surface: #FFFFFF; --surface-alt: #F1EEE4;
+    --ink: #1C2321; --ink-soft: #55605A; --border: #E4DFD3;
+    --pine: #2F4B3C; --pine-deep: #1F3329; --amber: #B98A2F; --amber-deep: #8F6A1F;
+    --brick: #8C4A3B; --brick-bg: #F7E9E4; --ok: #2F6B4F; --ok-bg: #E7F1EA;
+    --gold: #C9962C; --silver: #9AA0A6; --bronze: #B0692F;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg: #14231C; --surface: #1B2D24; --surface-alt: #22362B;
+      --ink: #EDEFE9; --ink-soft: #A9B5AC; --border: #33473C;
+      --pine: #7FBE9C; --pine-deep: #A6D6BB; --amber: #E0AE55; --amber-deep: #F0C578;
+      --brick: #E1998A; --brick-bg: #33241F; --ok: #86C9A2; --ok-bg: #1E3327;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14231C; --surface: #1B2D24; --surface-alt: #22362B;
+    --ink: #EDEFE9; --ink-soft: #A9B5AC; --border: #33473C;
+    --pine: #7FBE9C; --pine-deep: #A6D6BB; --amber: #E0AE55; --amber-deep: #F0C578;
+    --brick: #E1998A; --brick-bg: #33241F; --ok: #86C9A2; --ok-bg: #1E3327;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.55; min-height: 100vh; -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .serif { font-family: 'Lora', Georgia, serif; }
+  .shell { max-width: 640px; margin: 0 auto; padding: 0 0 96px; }
+  header.top { padding: 24px 20px 14px; border-bottom: 1px solid var(--border); }
+  header.top .brand { font-size: 12px; letter-spacing: .02em; color: var(--ink-soft); margin: 0 0 10px; }
+  header.top h1 { font-size: 21px; font-weight: 600; margin: 0; color: var(--pine-deep); }
+  :root[data-theme="dark"] header.top h1, :root:not([data-theme="light"]) header.top h1 {
+    @media (prefers-color-scheme: dark) { color: var(--pine); }
+  }
+  nav.tabs { position: sticky; top: 0; display: flex; background: var(--bg); border-bottom: 1px solid var(--border); z-index: 10; }
+  nav.tabs button {
+    flex: 1; padding: 13px 6px; background: none; border: none; font-family: 'Inter', sans-serif;
+    font-size: 13.5px; font-weight: 500; color: var(--ink-soft); cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  nav.tabs button.active { color: var(--pine-deep); border-bottom-color: var(--amber); }
+  :root[data-theme="dark"] nav.tabs button.active, :root:not([data-theme="light"]) nav.tabs button.active {
+    @media (prefers-color-scheme: dark) { color: var(--pine); }
+  }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  main { padding: 22px 20px 0; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 17px; margin: 0 0 10px; color: var(--pine-deep); }
+  :root[data-theme="dark"] .card h2, :root:not([data-theme="light"]) .card h2 {
+    @media (prefers-color-scheme: dark) { color: var(--pine); }
+  }
+  .card p { font-size: 14px; color: var(--ink-soft); margin: 0 0 10px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  .field input {
+    width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--ink); font-family: 'Inter', sans-serif; font-size: 14px;
+  }
+  .btn {
+    display: inline-block; width: 100%; padding: 13px; border-radius: 8px; border: none;
+    background: var(--pine); color: #fff; font-family: 'Inter', sans-serif; font-size: 15px;
+    font-weight: 700; cursor: pointer; text-align: center;
+  }
+  .btn.amber { background: var(--amber); color: #211705; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .status-msg { font-size: 13px; margin-top: 10px; min-height: 16px; }
+  .status-msg.err { color: var(--brick); }
+  .status-msg.ok { color: var(--ok); }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+  .badge.paid { background: var(--ok-bg); color: var(--ok); }
+  .badge.pending { background: var(--brick-bg); color: var(--brick); }
+  .profile-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .profile-row:last-child { border-bottom: none; }
+  .profile-row .label { color: var(--ink-soft); }
+  .ref-box { display: flex; gap: 8px; margin-top: 6px; }
+  .ref-box input { flex: 1; }
+  .ref-box button { padding: 0 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-alt); color: var(--ink); font-weight: 600; cursor: pointer; }
+
+  .countdown { text-align: center; padding: 30px 20px; }
+  .countdown .big { font-size: 32px; font-weight: 700; font-family: 'Lora', serif; color: var(--pine-deep); margin: 8px 0; }
+  :root[data-theme="dark"] .countdown .big, :root:not([data-theme="light"]) .countdown .big {
+    @media (prefers-color-scheme: dark) { color: var(--pine); }
+  }
+  .progress-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--ink-soft); margin-bottom: 10px; }
+  .progress-track { height: 4px; background: var(--surface-alt); border-radius: 2px; overflow: hidden; margin-bottom: 16px; }
+  .progress-fill { height: 100%; background: var(--amber); transition: width .25s ease; }
+  .timer { font-weight: 700; color: var(--brick); }
+  .quiz-question { font-size: 16px; font-weight: 500; margin: 0 0 16px; }
+  .option {
+    display: block; width: 100%; text-align: left; padding: 13px 14px; margin-bottom: 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+    font-family: 'Inter', sans-serif; font-size: 14px; cursor: pointer;
+  }
+  .option.selected { border-color: var(--pine); background: var(--ok-bg); }
+  .quiz-nav { display: flex; gap: 10px; margin-top: 14px; }
+  .quiz-nav button {
+    flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--ink); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  .quiz-nav button:disabled { opacity: .4; cursor: default; }
+
+  .lb-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank { width: 30px; text-align: center; font-weight: 700; font-family: 'Lora', serif; }
+  .lb-row.top1 .lb-rank { color: var(--gold); }
+  .lb-row.top2 .lb-rank { color: var(--silver); }
+  .lb-row.top3 .lb-rank { color: var(--bronze); }
+  .lb-name { flex: 1; font-weight: 500; }
+  .lb-score { font-weight: 700; color: var(--pine-deep); }
+  :root[data-theme="dark"] .lb-score, :root:not([data-theme="light"]) .lb-score {
+    @media (prefers-color-scheme: dark) { color: var(--pine); }
+  }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--ink-soft); }
+  .empty-state .icon { font-size: 26px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <p class="brand">Exam Prep</p>
+    <h1>3-Day Challenge</h1>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="profile">Profile</button>
+    <button class="tab-btn" data-tab="quiz">Quiz</button>
+    <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
+  </nav>
+
+  <main>
+    <section id="panel-profile" class="panel active"><div id="profile-inner"></div></section>
+    <section id="panel-quiz" class="panel"><div id="quiz-inner"></div></section>
+    <section id="panel-leaderboard" class="panel"><div id="lb-inner"></div></section>
+  </main>
+</div>
+
+<script>
+// ---------------------------------------------------------------
+// CONFIG — fill these in with your real values
+const SUPABASE_URL = "https://ijapytnwikzovdhsgcnh.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqYXB5dG53aWt6b3ZkaHNnY25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NzU2ODAsImV4cCI6MjEwNTM1MTY4MH0.O51p37THBEDrYZym7nF2x4TWM974uM66o4H55qGL0RE";
+const PAYSTACK_PUBLIC_KEY = "pk_live_face7c6a8ce9b632ee9501b7269616ac7910bac2"; // from Paystack dashboard > Settings > API Keys
+const CHALLENGE_FEE_KOBO = 10000; // ₦100
+const SITE_URL = "https://sites.google.com/view/lowerinvertebrates/libio"; // used to build referral links
+// ---------------------------------------------------------------
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let myId = null;
+try { myId = localStorage.getItem('challenge_participant_id'); } catch(e) {}
+let myProfile = null;
+let currentSession = null;
+let quizQuestions = [];
+let quizAnswers = {};      // question_id -> chosen_index
+let quizIndex = 0;
+let quizTimerInterval = null;
+let quizEndsAt = null;
+let quizSubmitted = false;
+
+function getReferralFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('ref');
+}
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
+  });
+});
+
+// ============================================================
+// PROFILE TAB
+// ============================================================
+async function renderProfile() {
+  const wrap = document.getElementById('profile-inner');
+  if (!myId) {
+    wrap.innerHTML = `
+      <div class="card">
+        <h2>Register for the Challenge</h2>
+        <p>Play live for 3 days straight. Winners are decided by score on the leaderboard. Entry is a one-time \u20a6100 token.</p>
+        <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+        <div class="field"><label>Username</label><input type="text" id="reg-username" placeholder="How you'll appear on the leaderboard"></div>
+        <button class="btn" id="reg-btn">Register &amp; pay \u20a6100</button>
+        <p class="status-msg" id="reg-msg"></p>
+      </div>`;
+    document.getElementById('reg-btn').addEventListener('click', registerAndPay);
+    return;
+  }
+
+  wrap.innerHTML = `<div class="card"><p>Loading your profile...</p></div>`;
+  const { data, error } = await supabase.rpc('get_my_profile', { p_id: myId });
+  if (error || !data || !data.length) {
+    wrap.innerHTML = `<div class="card"><p>Couldn't load your profile. If this keeps happening, clear this site's data and register again.</p></div>`;
+    return;
+  }
+  myProfile = data[0];
+  const refLink = `${SITE_URL}?ref=${myProfile.referral_code}`;
+  const isPaid = myProfile.payment_status === 'paid';
+
+  wrap.innerHTML = `
+    <div class="card">
+      <h2>Your profile</h2>
+      <div class="profile-row"><span class="label">Username</span><span>${myProfile.username}</span></div>
+      <div class="profile-row"><span class="label">Email</span><span>${myProfile.email}</span></div>
+      <div class="profile-row"><span class="label">Status</span><span class="badge ${isPaid ? 'paid' : 'pending'}">${isPaid ? 'Paid \u2014 ready to play' : 'Payment pending'}</span></div>
+    </div>
+    ${!isPaid ? `
+    <div class="card">
+      <h2>Finish your entry</h2>
+      <p>Your registration is saved but payment hasn't been confirmed yet.</p>
+      <button class="btn amber" id="pay-again-btn">Pay \u20a6100 now</button>
+      <button class="btn" id="refresh-status-btn" style="margin-top:10px;background:var(--surface-alt);color:var(--ink);border:1px solid var(--border)">I've paid \u2014 refresh status</button>
+    </div>` : `
+    <div class="card">
+      <h2>Invite friends</h2>
+      <p>Share your link \u2014 they'll see it was you who invited them.</p>
+      <div class="ref-box">
+        <input type="text" id="ref-link" value="${refLink}" readonly>
+        <button id="copy-ref-btn">Copy</button>
+      </div>
+    </div>`}
+  `;
+
+  if (!isPaid) {
+    document.getElementById('pay-again-btn').addEventListener('click', () => openPaystack(myProfile.email));
+    document.getElementById('refresh-status-btn').addEventListener('click', renderProfile);
+  } else {
+    document.getElementById('copy-ref-btn').addEventListener('click', () => {
+      const input = document.getElementById('ref-link');
+      input.select();
+      document.execCommand('copy');
+      const btn = document.getElementById('copy-ref-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  }
+}
+
+async function registerAndPay() {
+  const email = document.getElementById('reg-email').value.trim();
+  const username = document.getElementById('reg-username').value.trim();
+  const msg = document.getElementById('reg-msg');
+
+  if (!email || !username) {
+    msg.textContent = 'Please fill in both fields.';
+    msg.className = 'status-msg err';
+    return;
+  }
+
+  document.getElementById('reg-btn').disabled = true;
+  msg.textContent = 'Registering...';
+  msg.className = 'status-msg';
+
+  const referredBy = getReferralFromURL();
+  const { data, error } = await supabase.rpc('register_participant', {
+    p_email: email, p_username: username, p_referred_by: referredBy
+  });
+
+  if (error) {
+    msg.textContent = error.message.includes('duplicate') ? 'That email or username is already registered.' : 'Something went wrong. Try again.';
+    msg.className = 'status-msg err';
+    document.getElementById('reg-btn').disabled = false;
+    return;
+  }
+
+  myId = data; // register_participant returns the new uuid directly
+  try { localStorage.setItem('challenge_participant_id', myId); } catch(e) {}
+  msg.textContent = 'Registered! Opening payment...';
+  msg.className = 'status-msg ok';
+  openPaystack(email);
+}
+
+function openPaystack(email) {
+  const handler = PaystackPop.setup({
+    key: PAYSTACK_PUBLIC_KEY,
+    email: email,
+    amount: CHALLENGE_FEE_KOBO,
+    currency: 'NGN',
+    callback: function(response) {
+      // Payment succeeded at Paystack. The webhook confirms it server-side
+      // (usually within seconds) and flips payment_status to 'paid'.
+      setTimeout(renderProfile, 2000);
+    },
+    onClose: function() {}
+  });
+  handler.openIframe();
+}
+
+// ============================================================
+// QUIZ TAB
+// ============================================================
+async function renderQuizTab() {
+  const wrap = document.getElementById('quiz-inner');
+  wrap.innerHTML = `<div class="card"><p>Checking today's session...</p></div>`;
+
+  const { data, error } = await supabase.rpc('get_current_session');
+  if (error || !data || !data.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#128197;</div><p>No challenge session is scheduled right now. Check back soon.</p></div>`;
+    return;
+  }
+  currentSession = data[0];
+  const now = new Date();
+  const start = new Date(currentSession.start_time);
+  const end = new Date(currentSession.end_time);
+  const reveal = new Date(currentSession.leaderboard_reveal_time);
+
+  if (!myId) {
+    wrap.innerHTML = `<div class="card"><h2>Register first</h2><p>Head to the Profile tab to register and pay the \u20a6100 entry before you can play.</p></div>`;
+    return;
+  }
+  if (!myProfile) {
+    const { data: p } = await supabase.rpc('get_my_profile', { p_id: myId });
+    if (p && p.length) myProfile = p[0];
+  }
+  if (!myProfile || myProfile.payment_status !== 'paid') {
+    wrap.innerHTML = `<div class="card"><h2>Payment required</h2><p>Complete your \u20a6100 entry on the Profile tab to unlock today's quiz.</p></div>`;
+    return;
+  }
+
+  if (now < start) {
+    startCountdownDisplay(wrap, start, `Day ${currentSession.day_number} starts in`, renderQuizTab);
+    return;
+  }
+  if (now >= start && now < end) {
+    beginLiveQuiz(wrap);
+    return;
+  }
+  if (now >= end && now < reveal) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#9203;</div><p>Today's session has ended. The leaderboard opens soon \u2014 check the Leaderboard tab.</p></div>`;
+    return;
+  }
+  wrap.innerHTML = `<div class="empty-state"><div class="icon">&#128197;</div><p>No live session right now. Check back for the next day.</p></div>`;
+}
+
+function startCountdownDisplay(wrap, targetDate, label, onDone) {
+  wrap.innerHTML = `<div class="countdown"><p>${label}</p><div class="big" id="cd-big">--:--:--</div></div>`;
+  const el = document.getElementById('cd-big');
+  const tick = () => {
+    const diff = targetDate - new Date();
+    if (diff <= 0) { clearInterval(iv); onDone(); return; }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  };
+  tick();
+  const iv = setInterval(tick, 1000);
+}
+
+async function beginLiveQuiz(wrap) {
+  wrap.innerHTML = `<div class="card"><p>Loading your 70 questions...</p></div>`;
+  const { data, error } = await supabase.rpc('get_session_questions', { p_session_id: currentSession.id });
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#9888;&#65039;</div><p>${error.message}</p></div>`;
+    return;
+  }
+  quizQuestions = data;
+  quizAnswers = {};
+  quizIndex = 0;
+  quizSubmitted = false;
+  quizEndsAt = new Date(currentSession.end_time);
+  renderQuizQuestion();
+  if (quizTimerInterval) clearInterval(quizTimerInterval);
+  quizTimerInterval = setInterval(() => {
+    const diff = quizEndsAt - new Date();
+    const timerEl = document.getElementById('quiz-timer');
+    if (diff <= 0) {
+      clearInterval(quizTimerInterval);
+      if (!quizSubmitted) submitQuiz();
+      return;
+    }
+    if (timerEl) {
+      const m = Math.floor(diff / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      timerEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+  }, 1000);
+}
+
+function renderQuizQuestion() {
+  const wrap = document.getElementById('quiz-inner');
+  const q = quizQuestions[quizIndex];
+  const chosen = quizAnswers[q.id];
+  wrap.innerHTML = `
+    <div class="progress-row">
+      <span>Question ${quizIndex + 1} of ${quizQuestions.length}</span>
+      <span class="timer" id="quiz-timer">--:--</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${(quizIndex + 1) / quizQuestions.length * 100}%"></div></div>
+    <p class="quiz-question">${q.question}</p>
+    <div id="q-options">${q.options.map((opt, i) => `<button class="option ${chosen === i ? 'selected' : ''}" data-i="${i}">${opt}</button>`).join('')}</div>
+    <div class="quiz-nav">
+      <button id="q-prev" ${quizIndex === 0 ? 'disabled' : ''}>Previous</button>
+      ${quizIndex === quizQuestions.length - 1
+        ? `<button id="q-submit" class="btn" style="flex:1;background:var(--pine)">Submit</button>`
+        : `<button id="q-next">Next</button>`}
+    </div>`;
+
+  wrap.querySelectorAll('#q-options .option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      quizAnswers[q.id] = parseInt(btn.dataset.i);
+      renderQuizQuestion();
+    });
+  });
+  const prevBtn = document.getElementById('q-prev');
+  if (prevBtn) prevBtn.addEventListener('click', () => { quizIndex--; renderQuizQuestion(); });
+  const nextBtn = document.getElementById('q-next');
+  if (nextBtn) nextBtn.addEventListener('click', () => { quizIndex++; renderQuizQuestion(); });
+  const submitBtn = document.getElementById('q-submit');
+  if (submitBtn) submitBtn.addEventListener('click', submitQuiz);
+}
+
+async function submitQuiz() {
+  if (quizSubmitted) return;
+  quizSubmitted = true;
+  if (quizTimerInterval) clearInterval(quizTimerInterval);
+
+  const wrap = document.getElementById('quiz-inner');
+  wrap.innerHTML = `<div class="card"><p>Submitting your answers...</p></div>`;
+
+  const answersPayload = Object.entries(quizAnswers).map(([question_id, chosen_index]) => ({
+    question_id: parseInt(question_id), chosen_index
+  }));
+
+  const { data, error } = await supabase.rpc('submit_challenge_attempt', {
+    p_participant_id: myId, p_session_id: currentSession.id, p_answers: answersPayload
+  });
+
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#9888;&#65039;</div><p>${error.message}</p></div>`;
+    return;
+  }
+  const result = data[0];
+  wrap.innerHTML = `
+    <div class="card" style="text-align:center">
+      <h2>Day ${currentSession.day_number} complete!</h2>
+      <p style="font-size:15px">You answered ${result.answered} of ${quizQuestions.length} questions.</p>
+      <div class="countdown"><div class="big">${result.score} / ${quizQuestions.length}</div></div>
+      <p>The leaderboard opens 1 hour after the session ends \u2014 check the Leaderboard tab then.</p>
+    </div>`;
+}
+
+// ============================================================
+// LEADERBOARD TAB
+// ============================================================
+async function renderLeaderboard() {
+  const wrap = document.getElementById('lb-inner');
+  wrap.innerHTML = `<div class="card"><p>Checking leaderboard status...</p></div>`;
+
+  const { data: sessionData, error: sessionErr } = await supabase.rpc('get_current_session');
+  if (sessionErr || !sessionData || !sessionData.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#127942;</div><p>No leaderboard available right now.</p></div>`;
+    return;
+  }
+  const session = sessionData[0];
+  const reveal = new Date(session.leaderboard_reveal_time);
+  const now = new Date();
+
+  if (now < reveal) {
+    startCountdownDisplay(wrap, reveal, `Day ${session.day_number} leaderboard opens in`, renderLeaderboard);
+    return;
+  }
+
+  const { data, error } = await supabase.rpc('get_leaderboard', { p_session_id: session.id });
+  if (error) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#9203;</div><p>${error.message}</p></div>`;
+    return;
+  }
+  if (!data.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">&#127942;</div><p>No entries yet for Day ${session.day_number}.</p></div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="card">
+      <h2>Day ${session.day_number} Leaderboard</h2>
+      ${data.map((row, i) => {
+        const rank = i + 1;
+        const cls = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+        const medal = rank === 1 ? '&#129351;' : rank === 2 ? '&#129352;' : rank === 3 ? '&#129353;' : rank;
+        return `<div class="lb-row ${cls}"><span class="lb-rank">${medal}</span><span class="lb-name">${row.username}</span><span class="lb-score">${row.score}</span></div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ---------- init ----------
+renderProfile();
+renderQuizTab();
+renderLeaderboard();
+</script>
+</body>
+</html>
